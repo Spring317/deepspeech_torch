@@ -1,0 +1,14 @@
+{
+  "learning_rate": 0.0001,
+  "batch_size": 16,
+  "num_epochs": 50,
+  "weight_decay": 1e-05,
+  "n_features": 161,
+  "hidden_size": 512,
+  "num_layers": 5,
+  "save_interval": 5,
+  "num_workers": 4,
+  "checkpoint_dir": "checkpoints",
+  "sample_rate": 16000,
+  "device": "auto"
+}
