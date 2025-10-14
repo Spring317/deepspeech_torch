@@ -1,0 +1,20 @@
+[
+  {
+    "audio_path": "path/to/audio1.wav",
+    "transcript": "xin chào tôi là trợ lý ảo",
+    "duration": 2.5,
+    "original_transcript": "Xin chào, tôi là trợ lý ảo."
+  },
+  {
+    "audio_path": "path/to/audio2.wav", 
+    "transcript": "hôm nay trời đẹp quá",
+    "duration": 1.8,
+    "original_transcript": "Hôm nay trời đẹp quá!"
+  },
+  {
+    "audio_path": "path/to/audio3.wav",
+    "transcript": "tôi đang học tiếng việt",
+    "duration": 3.2,
+    "original_transcript": "Tôi đang học tiếng Việt."
+  }
+]
