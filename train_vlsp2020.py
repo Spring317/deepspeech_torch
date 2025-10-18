@@ -51,7 +51,7 @@ def main():
     logger.info("Initializing Vietnamese ASR pipeline...")
     pipeline = VietnameseASRPipeline(config)
     
-    # Load dataloaders for vlsp2020_vinai_100h
+        # Load dataloaders for vlsp2020_vinai_100h
     logger.info("Loading vlsp2020_vinai_100h dataset from Hugging Face...")
     dataloaders = get_vlsp2020_dataloaders(
         pipeline=pipeline,

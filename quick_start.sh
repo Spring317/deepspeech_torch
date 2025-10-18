@@ -1,11 +1,11 @@
 #!/bin/bash
 
-# Quick start script for training Vietnamese ASR with viet_bud500 dataset
+# Quick start script for training Vietnamese ASR with vlsp2020_vinai_100h dataset
 
 set -e  # Exit on error
 
 echo "================================================"
-echo "Vietnamese ASR Training with viet_bud500"
+echo "Vietnamese ASR Training with vlsp2020_vinai_100h"
 echo "================================================"
 echo ""
 
@@ -50,7 +50,7 @@ echo "Training logs will be displayed below."
 echo "Press Ctrl+C to stop training."
 echo ""
 
-python train_viet_bud500.py --config config.json
+python train_vlsp2020.py --config config.json
 
 if [ $? -ne 0 ]; then
     echo ""

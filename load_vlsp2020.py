@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Data loader for linhtran92/viet_bud500 dataset from Hugging Face
+Data loader for doof-ferb/vlsp2020_vinai_100h dataset from Hugging Face
 This dataset uses AudioEncoder datatype from torchaudio
 """
 
@@ -19,22 +19,22 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-class VietBud500Loader:
-    """Loader for viet_bud500 dataset"""
+class VLSP2020Loader:
+    """Loader for vlsp2020_vinai_100h dataset"""
     
     def __init__(self, cache_dir: str = None):
         self.cache_dir = cache_dir
         
     def load_dataset(self, split: str = None):
-        """Load the viet_bud500 dataset from Hugging Face"""
-        logger.info(f"Loading viet_bud500 dataset from Hugging Face...")
+        """Load the vlsp2020_vinai_100h dataset from Hugging Face"""
+        logger.info(f"Loading vlsp2020_vinai_100h dataset from Hugging Face...")
         
         try:
             # Load dataset
             if split:
-                dataset = load_dataset("linhtran92/viet_bud500", split=split, cache_dir=self.cache_dir)
+                dataset = load_dataset("doof-ferb/vlsp2020_vinai_100h", split=split, cache_dir=self.cache_dir)
             else:
-                dataset = load_dataset("linhtran92/viet_bud500", cache_dir=self.cache_dir)
+                dataset = load_dataset("doof-ferb/vlsp2020_vinai_100h", cache_dir=self.cache_dir)
             
             logger.info(f"Dataset loaded successfully!")
             if isinstance(dataset, dict):
@@ -78,8 +78,49 @@ class VietBud500Loader:
                 waveform, sr = torchaudio.load(audio_data['path'])
             else:
                 raise ValueError(f"Unknown audio format in sample: {audio_data.keys()}")
+        elif hasattr(audio_data, 'array') and hasattr(audio_data, 'sampling_rate'):
+            # Handle traditional AudioDecoder object from datasets library
+            waveform = torch.tensor(audio_data.array, dtype=torch.float32)
+            sr = audio_data.sampling_rate
+            
+            # Ensure waveform is 1D or 2D
+            if waveform.dim() == 1:
+                waveform = waveform.unsqueeze(0)  # Add channel dimension
+        elif hasattr(audio_data, 'get_all_samples') and hasattr(audio_data, 'metadata'):
+            # Handle newer TorchCodec AudioDecoder
+            try:
+                # Get all audio samples
+                audio_samples = audio_data.get_all_samples()
+                
+                # Convert AudioSamples to tensor
+                if hasattr(audio_samples, 'data'):
+                    waveform = audio_samples.data
+                elif hasattr(audio_samples, 'samples'):
+                    waveform = audio_samples.samples
+                else:
+                    # Try to convert to tensor directly
+                    waveform = torch.tensor(audio_samples, dtype=torch.float32)
+                
+                # Ensure it's a tensor and has proper shape
+                if not isinstance(waveform, torch.Tensor):
+                    waveform = torch.tensor(waveform, dtype=torch.float32)
+                
+                # Ensure waveform has proper dimensions
+                if waveform.dim() == 1:
+                    waveform = waveform.unsqueeze(0)  # Add channel dimension
+                elif waveform.dim() > 2:
+                    waveform = waveform.squeeze()
+                    if waveform.dim() == 1:
+                        waveform = waveform.unsqueeze(0)
+                
+                # Get sample rate from metadata
+                metadata = audio_data.metadata
+                sr = metadata.sample_rate if hasattr(metadata, 'sample_rate') else target_sr
+                
+            except Exception as e:
+                raise ValueError(f"Error extracting audio from TorchCodec AudioDecoder: {e}")
         else:
-            # Audio might be a tensor or bytes
+            # Audio might be a tensor or other format
             if isinstance(audio_data, torch.Tensor):
                 waveform = audio_data
                 sr = target_sr  # Assume target sample rate
@@ -104,10 +145,11 @@ class VietBud500Loader:
         duration = waveform.shape[1] / target_sr
         
         # Extract transcript
-        # The dataset might have 'sentence', 'transcript', 'text' or similar field
-        transcript = sample.get('sentence', 
-                               sample.get('transcript', 
-                                         sample.get('text', '')))
+        # The dataset might have 'transcription', 'sentence', 'transcript', 'text' or similar field
+        transcript = sample.get('transcription', 
+                               sample.get('sentence', 
+                                         sample.get('transcript', 
+                                                   sample.get('text', ''))))
         
         return {
             'waveform': waveform.squeeze(0),
@@ -218,8 +260,8 @@ class VietBud500Loader:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Load viet_bud500 dataset from Hugging Face")
-    parser.add_argument('--output_dir', type=str, default='viet_bud500_data',
+    parser = argparse.ArgumentParser(description="Load vlsp2020_vinai_100h dataset from Hugging Face")
+    parser.add_argument('--output_dir', type=str, default='vlsp2020_data',
                        help='Output directory for manifests and audio files')
     parser.add_argument('--cache_dir', type=str, default=None,
                        help='Cache directory for Hugging Face datasets')
@@ -239,7 +281,7 @@ def main():
     output_dir.mkdir(parents=True, exist_ok=True)
     
     # Initialize loader
-    loader = VietBud500Loader(cache_dir=args.cache_dir)
+    loader = VLSP2020Loader(cache_dir=args.cache_dir)
     
     # Load dataset
     dataset = loader.load_dataset()

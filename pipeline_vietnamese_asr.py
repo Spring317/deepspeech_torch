@@ -146,7 +146,7 @@ def collate_fn(batch):
 class DeepSpeechModel(nn.Module):
     """PyTorch implementation of DeepSpeech model"""
     
-    def __init__(self, vocab_size: int, n_features: int = 161, 
+    def __init__(self, vocab_size: int, n_features: int = 80, 
                  hidden_size: int = 512, num_layers: int = 5):
         super(DeepSpeechModel, self).__init__()
         
@@ -234,14 +234,15 @@ class ASRTrainer:
         self.optimizer = optim.Adam(
             self.model.parameters(), 
             lr=config.get('learning_rate', 1e-4),
-            weight_decay=config.get('weight_decay', 1e-5)
+            weight_decay=config.get('weight_decay', 1e-5),
+            eps=1e-8  # Add epsilon for numerical stability
         )
         
-        self.criterion = nn.CTCLoss(blank=0, zero_infinity=True)
+        self.criterion = nn.CTCLoss(blank=0, zero_infinity=True, reduction='mean')
         
-        # Learning rate scheduler
+        # Learning rate scheduler with more aggressive reduction
         self.scheduler = optim.lr_scheduler.ReduceLROnPlateau(
-            self.optimizer, mode='min', factor=0.5, patience=3
+            self.optimizer, mode='min', factor=0.7, patience=3
         )
     
     def calculate_output_lengths(self, input_lengths):
@@ -257,13 +258,17 @@ class ASRTrainer:
     
     def compute_features(self, waveforms):
         """Compute mel-scale spectrograms"""
+        # Move waveforms to device first
+        waveforms = waveforms.to(self.device)
+        
         # Convert to mel-scale spectrograms
-        # Using n_fft=512 to have n_freqs=257 which is > n_mels=161
+        # Using n_fft=512 gives n_freqs=257, so we use n_mels=80 to avoid warning
+        # n_mels=80 is a common choice that works well for speech recognition
         mel_specgram = torchaudio.transforms.MelSpectrogram(
             sample_rate=16000,
             n_fft=512,
             hop_length=160,
-            n_mels=161
+            n_mels=80  # Reduced from 128 to 80 to avoid warning
         ).to(self.device)
         
         # Apply log transform
@@ -316,18 +321,23 @@ class ASRTrainer:
                 logits, text_sequences, output_lengths, text_lengths
             )
             
+            # Check for NaN or infinite loss
+            if torch.isnan(loss) or torch.isinf(loss):
+                logger.warning(f"Skipping batch due to invalid loss: {loss.item()}")
+                continue
+            
             # Backward pass
             loss.backward()
             
-            # Gradient clipping
-            torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0)
+            # Gradient clipping for stability
+            torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=0.5)
             
             self.optimizer.step()
             
             total_loss += loss.item()
             num_batches += 1
             
-            progress_bar.set_postfix({'loss': f'{loss.item():.4f}'})
+            progress_bar.set_postfix({'loss': f'{loss.item():.4f}', 'lr': f'{self.optimizer.param_groups[0]["lr"]:.6f}'})
         
         return total_loss / num_batches
     
@@ -370,8 +380,10 @@ class ASRTrainer:
                     logits, text_sequences, output_lengths, text_lengths
                 )
                 
-                total_loss += loss.item()
-                num_batches += 1
+                # Skip invalid losses
+                if not (torch.isnan(loss) or torch.isinf(loss)):
+                    total_loss += loss.item()
+                    num_batches += 1
         
         return total_loss / num_batches
     
