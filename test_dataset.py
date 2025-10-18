@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """
-Test script to verify viet_bud500 dataset loading
+Test script to verify vlsp2020_vinai_100h dataset loading
 """
 
 import torch
-from viet_bud500_dataset import VietBud500Dataset, get_viet_bud500_dataloaders
+from vlsp2020_dataset import VLSP2020Dataset, get_vlsp2020_dataloaders
 from pipeline_vietnamese_asr import VietnameseASRPipeline
 import logging
 
@@ -13,10 +13,10 @@ logger = logging.getLogger(__name__)
 
 
 def test_dataset_loading():
-    """Test loading the viet_bud500 dataset"""
+    """Test loading the vlsp2020_vinai_100h dataset"""
     
     logger.info("="*50)
-    logger.info("Testing viet_bud500 Dataset Loading")
+    logger.info("Testing vlsp2020_vinai_100h Dataset Loading")
     logger.info("="*50)
     
     # Initialize pipeline
@@ -31,7 +31,7 @@ def test_dataset_loading():
     # Test loading train split
     logger.info("\n1. Testing train split loading...")
     try:
-        train_dataset = VietBud500Dataset(
+        train_dataset = VLSP2020Dataset(
             split='train',
             pipeline=pipeline,
             min_duration=0.5,
@@ -51,7 +51,7 @@ def test_dataset_loading():
     # Test loading validation split
     logger.info("\n2. Testing validation split loading...")
     try:
-        val_dataset = VietBud500Dataset(
+        val_dataset = VLSP2020Dataset(
             split='validation',
             pipeline=pipeline,
             min_duration=0.5,
@@ -69,7 +69,7 @@ def test_dataset_loading():
     # Test dataloader creation
     logger.info("\n3. Testing dataloader creation...")
     try:
-        dataloaders = get_viet_bud500_dataloaders(
+        dataloaders = get_vlsp2020_dataloaders(
             pipeline=pipeline,
             batch_size=config['batch_size'],
             num_workers=config['num_workers']
